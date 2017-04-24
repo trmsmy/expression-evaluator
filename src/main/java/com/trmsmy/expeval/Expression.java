@@ -113,7 +113,7 @@ public class Expression {
 	/**
 	 * LazyType interface created for lazily evaluated functions
 	 */
-	interface LazyNumber {
+	public interface LazyNumber {
 		Operand<?> eval();
 	}
 
@@ -376,6 +376,11 @@ public class Expression {
 
 		public boolean canHandleMultiParams() {
 			return false;
+		}
+		
+		@Override
+		public String toString() {
+			return oper;
 		}
 	}
 
@@ -741,13 +746,134 @@ public class Expression {
 		return outputQueue;
 	}
 
+	public class SubExp implements LazyNumber {
+		private String left;
+		private String right;
+		private String op;
+		private List<String> rightList;
+		
+		public String getLeft() {
+			return this.left;
+		}
+
+		public String getRight() {
+			return this.right;
+		}
+
+		public SubExp() {
+			
+		}
+		
+		public SubExp(String left, String right, String op) {
+			super();
+			this.left = left;
+			this.right = right;
+			this.op = op;
+		}
+
+		public SubExp(String left, List<String> right, String op) {
+			super();
+			this.left = left;
+			this.rightList  = right;
+			this.op = op;
+		}
+		
+		public String getOp() {
+			return this.op;
+		}
+
+		@Override
+		public Operand<?> eval() {
+			return null;
+		}
+
+		public List<String> getRightList() {
+			return rightList;
+		}
+
+		@Override
+		public String toString() {
+			return "SubExp [left=" + left + ", right=" + right + ", op=" + op + ", rightList=" + rightList + "]";
+		}
+
+		
+		
+	}
+
+	public List<SubExp> tokenExp() {
+
+		Stack<String> stack = new Stack<String>();
+		List<SubExp> subExps = new ArrayList<SubExp>();
+		
+		for (final String token : getRPN()) {
+			if (operators.containsKey(token)) {
+
+				if(stack.isEmpty()) continue;
+				
+				final Operator op = operators.get(token);
+				if (op.canHandleMultiParams()) {
+
+					final ArrayList<String> p = new ArrayList<>();
+					// pop parameters off the stack until we hit the start of
+					// this function's parameter list
+					while (!stack.isEmpty() && stack.peek() != null) {
+						p.add(0, stack.pop());
+					}
+					if (stack.peek() == null) {
+						stack.pop();
+					}
+
+					final String left = stack.pop();
+					//final String right = new ListOperand(p);
+
+					System.out.println("left= " + left + ", right= "+  p + ", op=" +  op);
+					subExps.add(new SubExp(left, p, op.oper));
+
+				} else {
+
+					final String v1 = stack.pop();
+					final String v2 = stack.pop();
+					
+					subExps.add(new SubExp(v2, v1, op.oper));
+					
+					System.out.println("left= " + v2 + ", right= "+  v1 + ", op=" +  op);
+				}
+				//stack.push(number);
+			} else if (variables.containsKey(token)) {
+				stack.push(token);
+			} else if (functions.containsKey(token.toUpperCase(Locale.ROOT))) {
+				LazyFunction f = functions.get(token.toUpperCase(Locale.ROOT));
+				ArrayList<String> p = new ArrayList<String>(!f.numParamsVaries() ? f.getNumParams() : 0);
+				// pop parameters off the stack until we hit the start of
+				// this function's parameter list
+				while (!stack.isEmpty() && stack.peek() != null) {
+					p.add(0, stack.pop());
+				}
+				if (stack.peek() == null) {
+					stack.pop();
+				}
+				System.out.println("left= " + ", right= "+  p + ", op=" +  f);
+				
+				subExps.add(new SubExp(null, p, f.getName()));
+				
+				//TODO 
+				//stack.push(fResult);
+			} else if ("(".equals(token)) {
+				stack.push(null);
+			} else {
+				stack.push(token);
+			}
+		}
+
+		return subExps;
+	}
+
 	/**
 	 * Evaluates the expression.
 	 * 
 	 * @return The result of the expression.
 	 */
 	public BigDecimal eval() {
-
 		Stack<LazyNumber> stack = new Stack<LazyNumber>();
 
 		for (final String token : getRPN()) {
@@ -939,12 +1065,7 @@ public class Expression {
 	 * @return The expression, allows to chain methods.
 	 */
 	public Expression setVariable(String variable, String value) {
-		if (isNumber(value))
-			variables.put(variable, new Variable(value));
-		else {
-			expression = expression.replaceAll("(?i)\\b" + variable + "\\b", "(" + value + ")");
-			rpn = null;
-		}
+		variables.put(variable, new Variable(value));
 		return this;
 	}
 
