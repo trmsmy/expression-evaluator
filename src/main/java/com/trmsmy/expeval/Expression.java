@@ -1141,9 +1141,7 @@ public class Expression {
 	private List<String> getRPN() {
 		if (rpn == null) {
 			rpn = shuntingYard(this.expression);
-			// TODO Enable validation once fixing 'multi param validation for
-			// Operator
-			// validate(rpn);
+			validate(rpn);
 
 			System.out.println("RPN=" + rpn + ", Expression=" + this.originalExpression);
 
@@ -1172,11 +1170,23 @@ public class Expression {
 
 		for (final String token : rpn) {
 			if (operators.containsKey(token)) {
+				
+				Operator op = operators.get(token);
+				
 				if (stack.peek() < 2) {
 					throw new ExpressionException("Missing parameter(s) for operator " + token);
 				}
-				// pop the operator's 2 parameters and add the result
-				stack.set(stack.size() - 1, stack.peek() - 2 + 1);
+				
+				if(op.canHandleMultiParams()) {
+					
+					int numParams = stack.pop();
+					//TODO Extend Operator to add no. of params and validate if Operator can handle numParams 
+					//stack.set(stack.size() - 1, stack.peek() + 1);
+				} else {
+					// pop the operator's 2 parameters and add the result
+					stack.set(stack.size() - 1, stack.peek() - 2 + 1);
+				}
+				
 			} else if (variables.containsKey(token)) {
 				stack.set(stack.size() - 1, stack.peek() + 1);
 			} else if (functions.containsKey(token.toUpperCase(Locale.ROOT))) {

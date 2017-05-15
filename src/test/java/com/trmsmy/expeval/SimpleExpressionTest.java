@@ -106,7 +106,7 @@ public class SimpleExpressionTest {
     //TODO Implement the functionality
     public void testSimpleStringExpressionList() {
         
-        //if(testOne) return; 
+        if(testOne) return; 
         
         String x = "FIRST", y = "LAST";
         Expression e = new Expression("fullName = 'FIRST' + 'LAST'");
@@ -119,6 +119,9 @@ public class SimpleExpressionTest {
     
     @Test
     public void test_IN_Operator() {
+    	
+    	// if(testOne) return; 
+    	
         Expression expression = new Expression("m IN(1,2,3,40)");
         expression.with("m", "40");
         assertEquals("1", expression.eval().toPlainString());
